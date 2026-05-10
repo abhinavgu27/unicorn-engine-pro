@@ -18,14 +18,14 @@ class UnicornState(TypedDict):
 # 2. The Agent Nodes (Now running on Groq Llama-3 70B)
 def visionary_node(state: UnicornState):
     print("\n[CEO] Visionary: Thinking via Cloud AI...")
-    llm = ChatGroq(model="llama3-70b-8192", temperature=0.8) 
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.8) 
     prompt = "You are a startup CEO. Pitch a highly innovative, 2-sentence idea for a new AI-driven software company. Do not use markdown."
     response = llm.invoke(prompt)
     return {"current_phase": "development", "product_spec": response.content}
 
 def tech_lead_node(state: UnicornState):
     print("\n[CTO] Tech Lead: Writing code via Cloud AI...")
-    llm = ChatGroq(model="llama3-70b-8192", temperature=0.2)
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.8)
     prompt = f"Write a 1-file Python script prototype for: {state.get('product_spec')}. RAW CODE ONLY."
     response = llm.invoke(prompt)
     raw_code = response.content.replace("```python", "").replace("```", "").strip()
@@ -35,7 +35,7 @@ def tech_lead_node(state: UnicornState):
 
 def board_critic_node(state: UnicornState):
     print("\n[BOARD] Evaluating via Cloud AI...")
-    llm = ChatGroq(model="llama3-70b-8192", temperature=0.1) 
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.8) 
     prompt = f"Board Review: Spec: {state.get('product_spec')}. Code: {state.get('codebase_status')}. Reply APPROVED or REJECTED."
     response = llm.invoke(prompt)
     approval = "APPROVED" in response.content.upper()
