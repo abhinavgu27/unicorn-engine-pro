@@ -6,9 +6,11 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 from langchain_groq import ChatGroq
 
-# 1. Configuration & Image Helper
+# ==========================================
+# 1. VISUAL AI TOOL (Together AI + Flux)
+# ==========================================
 def generate_branding_image(industry_idea: str):
-    """Calls Together AI to generate a high-speed Flux image."""
+    """Calls Together AI and prints the exact raw response for debugging."""
     url = "https://api.together.xyz/v1/images/generations"
     api_key = os.getenv("TOGETHER_API_KEY")
     
@@ -19,7 +21,7 @@ def generate_branding_image(industry_idea: str):
         "height": 1024,
         "steps": 4,
         "n": 1,
-        "response_format": "url"
+        "response_format": "b64_json"
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -28,19 +30,35 @@ def generate_branding_image(industry_idea: str):
     
     try:
         response = requests.post(url, json=payload, headers=headers)
-        return response.json()['data'][0]['url']
+        response_data = response.json()
+        
+        # 🔍 THE MICROSCOPE: Print exactly what Together AI says to the Render Logs
+        print(f"\n[DEBUG] Raw Together AI Response: {response_data}\n")
+        
+        if "data" in response_data:
+            base64_image = response_data['data'][0]['b64_json']
+            return f"data:image/jpeg;base64,{base64_image}"
+        else:
+            print("[ERROR] No image data found in the response.")
+            return "https://dummyimage.com/1024x1024/1f2937/ffffff&text=API+Denied+Request"
+            
     except Exception as e:
-        print(f"[ERROR] Image Generation Failed: {e}")
-        return "https://via.placeholder.com/1024?text=Branding+Service+Offline"
+        print(f"[ERROR] Python crashed while reading image: {e}")
+        return "https://dummyimage.com/1024x1024/1f2937/ffffff&text=Generation+Failed"
 
+# ==========================================
+# 2. THE MULTIMODAL STATE
+# ==========================================
 class UnicornState(TypedDict):
     industry: str
     product_spec: str
-    branding_url: str  # <--- Our new Multimodal data point!
+    branding_url: str  # Holds the Base64 image
     codebase_status: str
     board_approval: bool
 
-# 2. Agent Nodes
+# ==========================================
+# 3. THE AI AGENTS
+# ==========================================
 def visionary_node(state: UnicornState):
     print("\n[CEO] Visionary: Defining Strategy...")
     llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.8)
@@ -74,7 +92,9 @@ def board_critic_node(state: UnicornState):
     approval = "APPROVED" in response.content.upper()
     return {"board_approval": approval}
 
-# 3. Construct the Graph
+# ==========================================
+# 4. CONSTRUCT THE LANGGRAPH WORKFLOW
+# ==========================================
 workflow = StateGraph(UnicornState)
 
 workflow.add_node("visionary", visionary_node)
