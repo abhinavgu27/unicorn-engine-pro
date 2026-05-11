@@ -1,45 +1,25 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import engine # This imports your existing agent logic
+from engine import app as unicorn_graph
 
 app = FastAPI()
 
-# This allows your React app (on port 3000) to talk to this API (on port 8000)
+# Allow your Vercel frontend to talk to this backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class IndustryRequest(BaseModel):
+# Define what the frontend is sending
+class LaunchRequest(BaseModel):
     industry: str
 
 @app.post("/launch")
-async def launch_agents(request: IndustryRequest):
-    print(f"Received request to disrupt: {request.industry}")
-    
-    # We run your Unicorn Engine graph
-    initial_state = {
-        "messages": [],
-        "current_phase": "ideation",
-        "product_spec": f"Industry: {request.industry}",
-        "codebase_status": "",
-        "board_approval": False
-    }
-    
-    # Run the engine and get the final result
-    result = engine.app.invoke(initial_state)
-    
-    return {
-        "spec": result["product_spec"],
-        "code": result["codebase_status"]
-    }
-
-if __name__ == "__main__":
-    import uvicorn
-    # This allows the cloud server to choose the port
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+async def launch_engine(request: LaunchRequest):
+    # Pass the industry directly into the graph's initial state
+    final_state = unicorn_graph.invoke({"industry": request.industry})
+    return final_state
